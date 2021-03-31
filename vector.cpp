@@ -52,6 +52,10 @@ Vector operator*(const Vector& a, double t) {
     return Vector(a[0]*t, a[1]*t, a[2]*t);
 }
 
+Vector operator*(double t, const Vector& a) {
+    return Vector(a[0]*t, a[1]*t, a[2]*t);
+}
+
 Vector operator/(const Vector& a, double t) {
     return Vector(a[0]/t, a[1]/t, a[2]/t);
 }
@@ -64,6 +68,10 @@ Vector cross(const Vector& a, const Vector& b) {
   return Vector(a[1] * b[2] - a[2] * b[1], 
                 a[2] * b[0] - a[0] * b[2],
                 a[0] * b[1] - a[1] * b[0]);
+}
+
+double norm(const Vector& a) {
+  return sqrt(dot(a, a));
 }
 
 Vector normalize(const Vector& a) {

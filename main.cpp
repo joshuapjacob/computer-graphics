@@ -45,6 +45,7 @@ class Sphere {
       }
       intersection.P = ray.O + ray.u*intersection.t;
       intersection.N = normalize(intersection.P - C);
+      intersection.albedo = albedo;
       return intersection;
     }
     Vector albedo;
@@ -55,7 +56,7 @@ class Sphere {
 
 class BasicScene {
   public:
-    BasicScene(){
+    explicit BasicScene(const Vector& light_position){
       Sphere* left_wall = new Sphere(Vector(0, 1000, 0), 940, Vector(1, 0, 0));
       Sphere* front_wall = new Sphere(Vector(0, 0, -1000), 940, Vector(0, 1, 0));
       Sphere* right_wall = new Sphere(Vector(0, -1000, 0), 990, Vector(0, 0, 1));
@@ -68,41 +69,72 @@ class BasicScene {
       spheres.push_back(back_wall);
       spheres.push_back(ceiling);
       spheres.push_back(ground);
+      this->S = light_position;
     }
+
     void addSphere(Sphere* sphere) {
       spheres.push_back(sphere);
     }
 
-    Vector getColor(const Ray& ray, int ray_depth) {
-      if (ray_depth < 0) return Vector(0., 0., 0.);
+    Intersection intersect(const Ray& ray) {
+      Intersection best_intersection;
+      best_intersection.intersected = false;
       double min_t = 1e5;
-      Sphere* closest_sphere;
       for (auto &sphere : spheres) {
         Intersection intersection = sphere->intersect(ray);
         if (intersection.intersected && intersection.t < min_t) {
           min_t = intersection.t;
-          closest_sphere = sphere;
+          best_intersection = intersection;
         }
       }
-      return closest_sphere->albedo;
+      return best_intersection;
     }
+
+    Vector getColor(const Ray& ray, int ray_depth) {
+      if (ray_depth < 0) return Vector(0., 0., 0.);
+      Intersection intersection = intersect(ray);
+      Vector L;
+
+      if (intersection.intersected) {
+        double eps = 1e-10;
+        Vector N = intersection.N;
+        Vector P = intersection.P + N*eps;
+ 
+        double d = norm(S - P);
+        Vector omega = normalize(S - P);
+        Ray lightRay = Ray(S, omega*(-1.));
+
+        Intersection lightIntersection = intersect(lightRay);
+        bool V_p = !(lightIntersection.intersected && lightIntersection.t <= d);
+        Vector rho = lightIntersection.albedo;
+
+        L =  rho / M_PI * I / (4 * M_PI * pow(d, 2)) * V_p * std::max(dot(N, omega), 0.);
+      }
+
+      return L;
+    }
+
   private:
     std::vector<Sphere*> spheres;
+    Vector S;
+    double I = 1e5;
 };
 
 int main() {
   
-  BasicScene scene = BasicScene();
+  BasicScene scene = BasicScene(Vector(-10, 20, 40));
 
-  Sphere* sphere = new Sphere(Vector(0, 0, 0), 10, Vector(1., 1., 1.));
-  scene.addSphere(sphere);
+  Sphere* sphere1 = new Sphere(Vector(-15, 0, 0), 10, Vector(1., 1., 1.));
+  Sphere* sphere2 = new Sphere(Vector(15, 0, 0), 10, Vector(1., 1., 1.));
+  scene.addSphere(sphere1);
+  scene.addSphere(sphere2);
 
   int W = 1024;
   int H = 1024;
   std::vector<unsigned char> image(W*H * 3, 0);
   double fov = 1.0472; // 60 deg
   Vector Q = Vector(0, 0, 55);
-  double max_path_length = 1e5;
+  double max_ray_depth = 10;
   double gamma = 2.2;
 
   for (int i = 0; i < H; i++) {
@@ -114,7 +146,7 @@ int main() {
       V[2] = Q[2] - W / (2 * tan(fov / 2));
 
       Ray ray = Ray(Q, normalize(V - Q));
-      Vector color = scene.getColor(ray, max_path_length);
+      Vector color = scene.getColor(ray, max_ray_depth);
             
       image[(i*W + j) * 3 + 0] = std::min(255., pow(color[0], 1./gamma)*255);
       image[(i*W + j) * 3 + 1] = std::min(255., pow(color[1], 1./gamma)*255);
