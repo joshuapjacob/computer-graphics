@@ -7,7 +7,9 @@
 #include "vector.h"
 
 struct Intersection {
-  bool intersected;
+  bool intersected = false;
+  bool reflective = false;
+  double refractive_index = 1.;
   double t;
   Vector P;
   Vector N;
@@ -26,10 +28,17 @@ class Ray {
 
 class Sphere {
   public:
-    Sphere(const Vector& C, const double& R, const Vector& albedo) {
+    Sphere(const Vector& C,
+           const double& R,
+           const Vector& albedo,
+           bool reflective = false,
+           double refractive_index = 1.,
+           bool hollow_inner_sphere = false) {
         this->C = C;
         this->R = R;
         this->albedo = albedo;
+        this->reflective = reflective;
+        this->refractive_index = refractive_index;
     }
     Intersection intersect(const Ray &ray) {
       Intersection intersection;
@@ -46,12 +55,16 @@ class Sphere {
       intersection.P = ray.O + ray.u*intersection.t;
       intersection.N = normalize(intersection.P - C);
       intersection.albedo = albedo;
+      intersection.refractive_index = refractive_index;
+      if (this->reflective) intersection.reflective = true;
       return intersection;
     }
     Vector albedo;
   private:
     Vector C;
     double R;
+    bool reflective;
+    double refractive_index;
 };
 
 class BasicScene {
@@ -99,16 +112,38 @@ class BasicScene {
         double eps = 1e-10;
         Vector N = intersection.N;
         Vector P = intersection.P + N*eps;
- 
-        double d = norm(S - P);
-        Vector omega = normalize(S - P);
-        Ray lightRay = Ray(S, omega*(-1.));
 
-        Intersection lightIntersection = intersect(lightRay);
-        bool V_p = !(lightIntersection.intersected && lightIntersection.t <= d);
-        Vector rho = lightIntersection.albedo;
+        if (intersection.reflective) {
+          Ray reflected_ray = Ray(P, ray.u - (2*dot(N,ray.u)) * N);
+          return getColor(reflected_ray, ray_depth - 1);
 
-        L =  rho / M_PI * I / (4 * M_PI * pow(d, 2)) * V_p * std::max(dot(N, omega), 0.);
+        } else if (intersection.refractive_index != 1.) {
+          double n1, n2;
+          if (dot(N,ray.u) > 0) {
+            N = (-1.)*N;
+            n1 = intersection.refractive_index;
+            n2 = 1.;
+          } else {
+            n1 = 1.;
+            n2 = intersection.refractive_index;
+          }
+          P = intersection.P - N*eps;
+          double dot_N_u = dot(N,ray.u);
+          Vector u_T = (n1/n2) * (ray.u - dot_N_u*N);
+          Vector u_N = (-1.)*N * sqrt(1 - pow((n1/n2),2.)*(1 - pow(dot_N_u,2.)));
+          Vector u = u_T + u_N;
+          Ray refracted_ray = Ray(P, u);
+          return getColor(refracted_ray, ray_depth - 1);
+
+        } else {
+          double d = norm(S - P);
+          Vector omega = normalize(S - P);
+          Ray lightRay = Ray(S, omega*(-1.));
+          Intersection lightIntersection = intersect(lightRay);
+          bool V_p = !(lightIntersection.intersected && lightIntersection.t <= d);
+          Vector rho = lightIntersection.albedo;
+          L = rho / M_PI * I / (4 * M_PI * pow(d, 2)) * V_p * std::max(dot(N, omega), 0.);
+        }
       }
 
       return L;
@@ -124,9 +159,9 @@ int main() {
   
   BasicScene scene = BasicScene(Vector(-10, 20, 40));
 
-  Sphere* sphere1 = new Sphere(Vector(-15, 0, 0), 10, Vector(1., 1., 1.));
-  Sphere* sphere2 = new Sphere(Vector(15, 0, 0), 10, Vector(1., 1., 1.));
-  scene.addSphere(sphere1);
+  // Sphere* sphere1 = new Sphere(Vector(0, 0, 0), 10, Vector(1., 1., 1.), false, 1.5, false);
+  // scene.addSphere(sphere1);
+  Sphere* sphere2 = new Sphere(Vector(0, 0, 0), 10, Vector(1., 1., 1.), false, 1.5);
   scene.addSphere(sphere2);
 
   int W = 1024;
