@@ -49,19 +49,23 @@ Vector operator-(const Vector& a, const Vector& b) {
 }
 
 Vector operator*(const Vector& a, double t) {
-    return Vector(a[0]*t, a[1]*t, a[2]*t);
+  return Vector(a[0]*t, a[1]*t, a[2]*t);
 }
 
 Vector operator*(double t, const Vector& a) {
-    return Vector(a[0]*t, a[1]*t, a[2]*t);
+  return Vector(a[0]*t, a[1]*t, a[2]*t);
+}
+
+Vector operator*(const Vector &a, const Vector &b) {
+  return Vector(a[0]*b[0], a[1]*b[1], a[2]*b[2]);
 }
 
 Vector operator/(const Vector& a, double t) {
-    return Vector(a[0]/t, a[1]/t, a[2]/t);
+  return Vector(a[0]/t, a[1]/t, a[2]/t);
 }
 
 double dot(const Vector& a, const Vector& b) {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
 
 Vector cross(const Vector& a, const Vector& b) {

@@ -19,6 +19,7 @@ Vector operator-(const Vector& a, const Vector& b);
 Vector operator/(const Vector& a, double t);
 Vector operator*(const Vector& a, double t);
 Vector operator*(double t, const Vector& a);
+Vector operator*(const Vector& a, const Vector& b);
 double dot(const Vector& a, const Vector& b);
 Vector cross(const Vector &a, const Vector &b);
 double norm(const Vector& a);
