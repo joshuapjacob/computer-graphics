@@ -86,11 +86,12 @@ Vector random_cos(const Vector &N) {
   double z = sqrt(r2);
 
   int min_i = 0;
-  int min = 0;
+  double min = abs(N[0]);
   for (int i = 1; i < 3; i++) {
     if (abs(N[i]) < min) {
       min = abs(N[i]);
-    } min_i = i;
+      min_i = i;
+    }
   }
 
   Vector T1;
@@ -99,7 +100,7 @@ Vector random_cos(const Vector &N) {
   else if (min_i == 2) T1 = Vector(N[1], -N[0], 0);
   T1 = normalize(T1);
 
-  Vector T2 = cross(N, T1);
+  Vector T2 = cross(T1, N);
 
   return x * T1 + y * T2 + z * N;
 }
@@ -249,21 +250,25 @@ int main() {
   double max_ray_depth = 5;
   double gamma = 2.2;
 
-  #pragma omp parallel for, schedule(dynamic, 1) 
+  #pragma omp parallel for
   for (int i = 0; i < H; i++) {
     for (int j = 0; j < W; j++) {
+
       Vector color;
+      double x,y;
+      
       for (int k = 0; k < rays_per_pixel; k++) {
+        boxMuller(0.5,x,y);
         Vector V;
-        V[0] = (Q[0] + j + 0.5 - W / 2);
-        V[1] = (Q[1] - i - 0.5 + H / 2);
+        V[0] = (Q[0] + (j + x) + 0.5 - W / 2);
+        V[1] = (Q[1] - (i + y) - 0.5 + H / 2);
         V[2] = Q[2] - W / (2 * tan(fov / 2));
 
         Ray ray = Ray(Q, normalize(V - Q));
         color += scene.getColor(ray, max_ray_depth);
       }
 
-      color = color/rays_per_pixel;
+      color /= rays_per_pixel;
             
       image[(i*W + j) * 3 + 0] = std::min(255., pow(color[0], 1./gamma)*255);
       image[(i*W + j) * 3 + 1] = std::min(255., pow(color[1], 1./gamma)*255);
