@@ -45,7 +45,7 @@ class Sphere {
     Intersection intersect(const Ray &ray) {
       Intersection intersection;
       Vector O_C = ray.O - C;
-      double discriminant = pow(dot(ray.u, O_C), 2) - (dot(O_C, O_C) - pow(R, 2));
+      double discriminant = pow(dot(ray.u, O_C), 2) - (pow(norm(O_C), 2) - pow(R, 2));
       intersection.intersected = discriminant >= 0;
       intersection.t = 0;
       if (intersection.intersected) {
@@ -102,7 +102,7 @@ Vector random_cos(const Vector &N) {
 
   Vector T2 = cross(T1, N);
 
-  return x * T1 + y * T2 + z * N;
+  return T1*x + T2*y + N*z;
 }
 
 class BasicScene {
@@ -130,7 +130,7 @@ class BasicScene {
     Intersection intersect(const Ray& ray) {
       Intersection best_intersection;
       best_intersection.intersected = false;
-      double min_t = 1e5;
+      double min_t = 1e10; // MAX RENDER DISTANCE
       for (auto &sphere : spheres) {
         Intersection intersection = sphere->intersect(ray);
         if (intersection.intersected && intersection.t < min_t) {
@@ -142,7 +142,7 @@ class BasicScene {
     }
 
     Vector getColor(const Ray& ray, int ray_depth) {
-      // TODO: Refactor this function.
+      // TODO: Refactor
       if (ray_depth < 0) return Vector(0., 0., 0.);
       Intersection intersection = intersect(ray);
       Vector Lo;
@@ -156,8 +156,8 @@ class BasicScene {
           // Reflection
           Ray reflected_ray = Ray(P, ray.u - (2*dot(N,ray.u)) * N);
           return getColor(reflected_ray, ray_depth - 1);
-
-        } else if (intersection.refractive_index != 1.) { 
+        } 
+        else if (intersection.refractive_index != 1.) { 
           // Refraction
           double n1, n2;
           if (dot(N,ray.u) > 0) {
@@ -189,20 +189,20 @@ class BasicScene {
             Ray internal_reflected_ray = Ray(P, ray.u - (2*dot(intersection.N,ray.u)) * intersection.N);
             return getColor(internal_reflected_ray, ray_depth - 1);
           }
-
-        } else { 
+        } 
+        else { 
           // Diffuse
           double d = norm(S - P);
           Vector omega = normalize(S - P);
-          Ray lightRay = Ray(S, omega*(-1.));
+          Ray lightRay = Ray(P, omega);
           Intersection lightIntersection = intersect(lightRay);
 
           // Direct Lighting
-          double visibility = (lightIntersection.intersected && lightIntersection.t <= d) ? 0 : 1;
+          double visibility = (lightIntersection.intersected && lightIntersection.t <= d) ? 0. : 1.;
           Vector rho = lightIntersection.albedo;
           Lo = I/(4*M_PI*pow(d, 2)) * rho/M_PI * visibility * std::max(dot(N,omega), 0.);
           
-          // TODO: Fix Indirect Lighting
+          // Indirect Lighting
           Ray random_ray = Ray(P, random_cos(N));
           Lo += rho * getColor(random_ray, ray_depth - 1);
         }
@@ -214,7 +214,7 @@ class BasicScene {
   private:
     std::vector<Sphere*> spheres;
     Vector S;
-    double I = 1e5;
+    double I = 1e5; // Light Intensity
 };
 
 int main() {
@@ -270,9 +270,9 @@ int main() {
 
       color /= rays_per_pixel;
             
-      image[(i*W + j) * 3 + 0] = std::min(255., pow(color[0], 1./gamma)*255);
-      image[(i*W + j) * 3 + 1] = std::min(255., pow(color[1], 1./gamma)*255);
-      image[(i*W + j) * 3 + 2] = std::min(255., pow(color[2], 1./gamma)*255);
+      image[(i*W + j) * 3 + 0] = std::max(std::min(255., pow(color[0], 1./gamma)*255),0.);
+      image[(i*W + j) * 3 + 1] = std::max(std::min(255., pow(color[1], 1./gamma)*255),0.);
+      image[(i*W + j) * 3 + 2] = std::max(std::min(255., pow(color[2], 1./gamma)*255),0.);
     }
   }
   
