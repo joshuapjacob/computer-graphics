@@ -23,6 +23,11 @@ struct Intersection {
   Vector albedo;
 };
 
+struct BoundingBox {
+  Vector B_min;
+  Vector B_max;
+};
+
 class Ray {
   public:
     Ray(const Vector& O, const Vector& u) {
@@ -327,13 +332,14 @@ class TriangleMesh : public Geometry {
 
       }
       fclose(f);
-
+      this->full_bounding_box = compute_full_bounding_box();
     }
 
     Intersection intersect(const Ray &ray) override {
       Intersection intersection;
       intersection.intersected = false;
-      if (not intersection_possible(ray)) return intersection;
+      if (not intersect_bounding_box(ray, this->full_bounding_box)) 
+        return intersection;
 
       Vector A, B, C, N, e1, e2;
       double min_t = MAXFLOAT;
@@ -367,13 +373,53 @@ class TriangleMesh : public Geometry {
     }
     
   private:
-    bool intersection_possible(const Ray &ray) {
+
+    BoundingBox compute_full_bounding_box() {
+      double min_x = MAXFLOAT, min_y = MAXFLOAT, min_z = MAXFLOAT;
+      double max_x = - MAXFLOAT, max_y = - MAXFLOAT, max_z = - MAXFLOAT;
+      for(auto const& vertex: vertices) {
+        Vector V = scaling_factor*vertex + translation;
+        if (V[0] < min_x) min_x = V[0];
+        else if (V[0] > max_x) max_x = V[0];
+        if (V[1] < min_y) min_y = V[1];
+        else if (V[1] > max_y) max_y = V[1];
+        if (V[2] < min_z) min_z = V[2];
+        else if (V[2] > max_z) max_z = V[2];
+      }
+
+      BoundingBox bounding_box;
+      bounding_box.B_min = Vector(min_x, min_y, min_z);
+      bounding_box.B_max = Vector(max_x, max_y, max_z);
+      return bounding_box;
+    }
+
+
+    bool intersect_bounding_box(const Ray &ray, BoundingBox bounding_box) {
       double tx1, ty1, tz1;
       double tx0, ty0, tz0;
+      double t_B_min, t_B_max;
+      Vector N;
 
-      if (std::min(tx1,ty1,tz1) > std::max(tx0,ty0,tz0)) {
+      N = Vector(1,0,0);
+      t_B_min = dot(bounding_box.B_min - ray.O, N) / dot(ray.u, N);
+      t_B_max = dot(bounding_box.B_max - ray.O, N) / dot(ray.u, N);
+      tx0 = std::min(t_B_min, t_B_max);
+      tx1 = std::max(t_B_min, t_B_max);
+
+      N = Vector(0,1,0);
+      t_B_min = dot(bounding_box.B_min - ray.O, N) / dot(ray.u, N);
+      t_B_max = dot(bounding_box.B_max - ray.O, N) / dot(ray.u, N);
+      ty0 = std::min(t_B_min, t_B_max);
+      ty1 = std::max(t_B_min, t_B_max);
+
+      N = Vector(0,0,1);
+      t_B_min = dot(bounding_box.B_min - ray.O, N) / dot(ray.u, N);
+      t_B_max = dot(bounding_box.B_max - ray.O, N) / dot(ray.u, N);
+      tz0 = std::min(t_B_min, t_B_max);
+      tz1 = std::max(t_B_min, t_B_max);
+
+      if (std::min({tx1,ty1,tz1}) > std::max({tx0,ty0,tz0}))
         return true;
-      }
       return false;
     }
 
@@ -384,6 +430,7 @@ class TriangleMesh : public Geometry {
     std::vector<Vector> vertexcolors;
     Vector translation;
     double scaling_factor;
+    BoundingBox full_bounding_box;
 };
 
 class BasicScene {
@@ -531,7 +578,7 @@ int main() {
   scene.addGeometry(light);
 
   // Cat
-  TriangleMesh* cat = new TriangleMesh(false, 0.6, Vector(0, -10, 0));
+  TriangleMesh* cat = new TriangleMesh(false, 0.3, Vector(0, -10, 0));
   cat->readOBJ("objs/cat.obj");
   scene.addGeometry(cat);
 
@@ -569,7 +616,7 @@ int main() {
   std::vector<unsigned char> image(W*H * 3, 0);
   double fov = 1.0472; // 60 deg
   Vector camera_position = Vector(0, 0, 55);
-  double max_ray_depth = 5;
+  double max_ray_depth = 20;
   double gamma = 2.2;
 
   #pragma omp parallel for
