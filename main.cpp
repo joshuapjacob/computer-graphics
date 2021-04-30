@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stdio.h>
 #include <algorithm>
+#include <list>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -27,7 +28,6 @@ struct BoundingBox {
   Vector B_min;
   Vector B_max;
 };
-
 class Ray {
   public:
     Ray(const Vector& O, const Vector& u) {
@@ -147,17 +147,26 @@ public:
 	int group;       // face group
 };
 
+struct Node {
+  Node *child_left;
+  Node *child_right;
+  BoundingBox bounding_box;
+  int starting_triangle;
+  int ending_triangle;
+};
+
 class TriangleMesh : public Geometry {
   public:
     ~TriangleMesh() {}
     TriangleMesh(
-      bool reflective = false,
-      double scaling_factor = 1.0,
-      const Vector translation = Vector(0.,0.,0.)
+      double scaling_factor,
+      const Vector &translation,
+      bool reflective = false
     ) {
       this->reflective = reflective;
       this->scaling_factor = scaling_factor;
       this->translation = translation;
+      this->bvh_root = nullptr;
       // TODO: Rotataion
     };
     
@@ -332,61 +341,106 @@ class TriangleMesh : public Geometry {
 
       }
       fclose(f);
-      this->full_bounding_box = compute_full_bounding_box();
+      build_bvh(this->bvh_root, 0, indices.size() - 1);
     }
 
     Intersection intersect(const Ray &ray) override {
       Intersection intersection;
       intersection.intersected = false;
-      if (not intersect_bounding_box(ray, this->full_bounding_box)) 
+      if (not intersect_bounding_box(ray, this->bvh_root->bounding_box)) 
         return intersection;
 
-      Vector A, B, C, N, e1, e2;
+      std::list<Node*> nodes_to_visit;
+      nodes_to_visit.push_front(this->bvh_root);
       double min_t = MAXFLOAT;
-      for(auto const& triangle: indices) {
-        A = scaling_factor*vertices[triangle.vtxi] + translation;
-        B = scaling_factor*vertices[triangle.vtxj] + translation;
-        C = scaling_factor*vertices[triangle.vtxk] + translation;
-        e1 = B - A;
-        e2 = C - A;
-        N = cross(e1, e2);
+      while (not nodes_to_visit.empty()) {
+        Node* curNode = nodes_to_visit.back();
+        nodes_to_visit.pop_back();
+        if (curNode->child_left) {
+          if (curNode->child_left->bounding_box.intersect(ray, t)) {
+            if (t < min_t) nodes_to_visit.push_back(curNode->child_left);
+          }
+          if (curNode->child_right->bounding_box.intersect(ray, t)) {
+            if (t < min_t) nodes_to_visit.push_back(curNode->child_right);
+          }
+        } else {
+          Vector A, B, C, N, e1, e2;
+          for (int i = curNode->starting_triangle; i < curNode->ending_triangle; i++) {
+            TriangleIndices triangle = this->indices[i];
+            A = scaling_factor*vertices[triangle.vtxi] + translation;
+            B = scaling_factor*vertices[triangle.vtxj] + translation;
+            C = scaling_factor*vertices[triangle.vtxk] + translation;
+            e1 = B - A;
+            e2 = C - A;
+            N = cross(e1, e2);
 
-        double beta  =  dot(e2, cross(A - ray.O, ray.u)) / dot(ray.u, N);
-        double gamma = -dot(e1, cross(A - ray.O, ray.u)) / dot(ray.u, N);
-        double alpha = 1. - beta - gamma;
+            double beta  =  dot(e2, cross(A - ray.O, ray.u)) / dot(ray.u, N);
+            double gamma = -dot(e1, cross(A - ray.O, ray.u)) / dot(ray.u, N);
+            double alpha = 1. - beta - gamma;
 
-        if (alpha > 0. && beta > 0. && gamma > 0.) {
-          double t = dot(A - ray.O, N) / dot(ray.u, N);
-          if (0 < t && t < min_t) {
-            min_t = t;
-            intersection.intersected = true;
-            intersection.t = t;
-            intersection.P = A + beta*e1 + gamma*e2;
-            intersection.N = N;
-            if (this->reflective) intersection.reflective = true;
-            intersection.albedo = Vector(1.,1.,1.); //! HARD CODE
+            if (alpha > 0. && beta > 0. && gamma > 0.) {
+              double t = dot(A - ray.O, N) / dot(ray.u, N);
+              if (0 < t && t < min_t) {
+                min_t = t;
+                intersection.intersected = true;
+                intersection.t = t;
+                intersection.P = A + beta*e1 + gamma*e2;
+                intersection.N = N;
+                if (this->reflective) intersection.reflective = true;
+                intersection.albedo = Vector(1.,1.,1.); //! HARD CODE
+              }
+            }
           }
         }
       }
-
       return intersection;
     }
     
   private:
 
-    BoundingBox compute_full_bounding_box() {
+    void build_bvh(Node *node, int starting_triangle, int ending_triangle) {
+      node->bounding_box =  compute_bounding_box(starting_triangle, ending_triangle);
+      node->starting_triangle = starting_triangle;
+      node->ending_triangle = ending_triangle;
+      Vector diag = compute_diag(node->bounding_box);
+      Vector middle_diag = node->bounding_box.B_min + diag*0.5;
+      int longest_axis = get_longest(diag);
+      int pivot_index = starting_triangle;
+      for (int i = starting_triangle; i < ending_triangle; i++) {
+        Vector barycenter = compute_barycenter(indices[i]);
+        if (barycenter[longest_axis] < middle_diag[longest_axis]) {
+          std::swap(indices[i], indices[pivot_index]);
+          pivot_index++;
+        }
+      }
+      if ( // Stopping Criteria
+        pivot_index <= starting_triangle ||
+        pivot_index >= ending_triangle ||
+        ending_triangle - starting_triangle < 5
+      ) return;
+      build_bvh(node->child_left, starting_triangle, pivot_index);
+      build_bvh(node->child_right, pivot_index, ending_triangle);
+    }
+
+    BoundingBox compute_bounding_box(int starting_triangle, int ending_triangle) {
       double min_x = MAXFLOAT, min_y = MAXFLOAT, min_z = MAXFLOAT;
       double max_x = - MAXFLOAT, max_y = - MAXFLOAT, max_z = - MAXFLOAT;
-      for(auto const& vertex: vertices) {
-        Vector V = scaling_factor*vertex + translation;
-        if (V[0] < min_x) min_x = V[0];
-        else if (V[0] > max_x) max_x = V[0];
-        if (V[1] < min_y) min_y = V[1];
-        else if (V[1] > max_y) max_y = V[1];
-        if (V[2] < min_z) min_z = V[2];
-        else if (V[2] > max_z) max_z = V[2];
+      for (int i = starting_triangle; i < ending_triangle; i++) {
+        auto triangle_vertices = {
+          this->vertices[this->indices[i].vtxi],
+          this->vertices[this->indices[i].vtxj],
+          this->vertices[this->indices[i].vtxk]
+        };
+        for (auto const& vertex: triangle_vertices) {
+          Vector V = scaling_factor*vertex + translation;
+          if (V[0] < min_x) min_x = V[0];
+          else if (V[0] > max_x) max_x = V[0];
+          if (V[1] < min_y) min_y = V[1];
+          else if (V[1] > max_y) max_y = V[1];
+          if (V[2] < min_z) min_z = V[2];
+          else if (V[2] > max_z) max_z = V[2];
+        }
       }
-
       BoundingBox bounding_box;
       bounding_box.B_min = Vector(min_x, min_y, min_z);
       bounding_box.B_max = Vector(max_x, max_y, max_z);
@@ -431,6 +485,7 @@ class TriangleMesh : public Geometry {
     Vector translation;
     double scaling_factor;
     BoundingBox full_bounding_box;
+    Node* bvh_root;
 };
 
 class BasicScene {
@@ -578,17 +633,17 @@ int main() {
   scene.addGeometry(light);
 
   // Cat
-  TriangleMesh* cat = new TriangleMesh(false, 0.3, Vector(0, -10, 0));
+  TriangleMesh* cat = new TriangleMesh(0.3, Vector(0, -10, 0), false);
   cat->readOBJ("objs/cat.obj");
   scene.addGeometry(cat);
 
   // Gun
-  // TriangleMesh* gun = new TriangleMesh(false, 50, Vector(0, 10, 20));
+  // TriangleMesh* gun = new TriangleMesh(50, Vector(0, 10, 20), false);
   // gun->readOBJ("objs/gun.obj");
   // scene.addGeometry(gun);
 
   // Car
-  // TriangleMesh* car = new TriangleMesh(false, 1, Vector(0, -10, 0));
+  // TriangleMesh* car = new TriangleMesh(1, Vector(0, -10, 0), false);
   // car->readOBJ("objs/koenigsegg.obj");
   // scene.addGeometry(car);
 
@@ -616,7 +671,7 @@ int main() {
   std::vector<unsigned char> image(W*H * 3, 0);
   double fov = 1.0472; // 60 deg
   Vector camera_position = Vector(0, 0, 55);
-  double max_ray_depth = 20;
+  double max_ray_depth = 5;
   double gamma = 2.2;
 
   #pragma omp parallel for
