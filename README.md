@@ -1,4 +1,4 @@
-# Computer-Graphics
+# Computer Graphics
 This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Polytechnique.
 
 ## Simple Ray-Tracer (from scratch)
