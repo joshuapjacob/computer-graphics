@@ -12,6 +12,8 @@
 
 #include "vector.h"
 
+// INTERSECTION ----------------------------------------------------------------
+
 struct Intersection {
   bool intersected = false;
   bool reflective = false;
@@ -24,10 +26,15 @@ struct Intersection {
   Vector albedo;
 };
 
+// BOUNDING BOX ----------------------------------------------------------------
+
 struct BoundingBox {
   Vector B_min;
   Vector B_max;
 };
+
+// RAY -------------------------------------------------------------------------
+
 class Ray {
   public:
     Ray(const Vector& O, const Vector& u) {
@@ -38,11 +45,15 @@ class Ray {
     Vector u;
 };
 
+// GEOMETRY --------------------------------------------------------------------
+
 class Geometry {
   public:
     virtual Intersection intersect(const Ray &ray) = 0;
     bool reflective;
 };
+
+// SPHERE ----------------------------------------------------------------------
 
 class Sphere : public Geometry {
   public:
@@ -84,7 +95,7 @@ class Sphere : public Geometry {
       if (this->invert_normal) intersection.N = (-1.)*intersection.N;
       if (this->is_light_source){
         intersection.is_light = true;
-      } 
+      }
       return intersection;
     }
     Vector albedo;
@@ -95,6 +106,8 @@ class Sphere : public Geometry {
     bool invert_normal;
     bool is_light_source;
 };
+
+// UTILITIES -------------------------------------------------------------------
 
 void boxMuller(double stdev, double &x, double &y) {
   double r1 = ((double) rand() / (RAND_MAX));
@@ -130,6 +143,8 @@ Vector random_cos(const Vector &N) {
   return T1*x + T2*y + N*z;
 }
 
+// MESH ------------------------------------------------------------------------
+
 class TriangleIndices {
 public:
 	TriangleIndices(
@@ -161,18 +176,20 @@ class TriangleMesh : public Geometry {
     TriangleMesh(
       double scaling_factor,
       const Vector &translation,
+      const Vector &albedo,
       bool reflective = false
     ) {
       this->reflective = reflective;
       this->scaling_factor = scaling_factor;
       this->translation = translation;
-      this->bvh_root = nullptr;
+      this->albedo = albedo;
+      this->bvh_root = new Node;
       // TODO: Rotataion
     };
-    
+
     void readOBJ(const char* obj) {
 
-      // char matfile[255];
+      char matfile[255];
       char grp[255];
 
       FILE* f;
@@ -315,7 +332,7 @@ class TriangleMesh : public Geometry {
                   if (i3 < 0) t2.vtxk = vertices.size() + i3; else	t2.vtxk = i3 - 1;
                   if (k0 < 0) t2.ni = normals.size() + k0; else	t2.ni = k0 - 1;
                   if (k2 < 0) t2.nj = normals.size() + k2; else	t2.nj = k2 - 1;
-                  if (k3 < 0) t2.nk = normals.size() + k3; else	t2.nk = k3 - 1;								
+                  if (k3 < 0) t2.nk = normals.size() + k3; else	t2.nk = k3 - 1;
                   consumedline = consumedline + offset;
                   i2 = i3;
                   k2 = k3;
@@ -341,26 +358,59 @@ class TriangleMesh : public Geometry {
 
       }
       fclose(f);
-      build_bvh(this->bvh_root, 0, indices.size() - 1);
+      build_bvh(this->bvh_root, 0, indices.size());
     }
 
     Intersection intersect(const Ray &ray) override {
       Intersection intersection;
       intersection.intersected = false;
-      if (not intersect_bounding_box(ray, this->bvh_root->bounding_box)) 
+      double t;
+      double min_t = MAXFLOAT;
+
+      if (not intersect_bounding_box(ray, this->bvh_root->bounding_box, t))
         return intersection;
 
+      // NO BVH
+      // Vector A, B, C, N, e1, e2;
+      // for (int i = 0; i < indices.size(); i++) {
+      //   TriangleIndices triangle = this->indices[i];
+      //   A = scaling_factor*vertices[triangle.vtxi] + translation;
+      //   B = scaling_factor*vertices[triangle.vtxj] + translation;
+      //   C = scaling_factor*vertices[triangle.vtxk] + translation;
+      //   e1 = B - A;
+      //   e2 = C - A;
+      //   N = cross(e1, e2);
+
+      //   double beta  =  dot(e2, cross(A - ray.O, ray.u)) / dot(ray.u, N);
+      //   double gamma = -dot(e1, cross(A - ray.O, ray.u)) / dot(ray.u, N);
+      //   double alpha = 1. - beta - gamma;
+
+      //   if (alpha > 0. && beta > 0. && gamma > 0.) {
+      //     double t = dot(A - ray.O, N) / dot(ray.u, N);
+      //     if (0 < t && t < min_t) {
+      //       min_t = t;
+      //       intersection.intersected = true;
+      //       intersection.t = t;
+      //       intersection.P = A + beta*e1 + gamma*e2;
+      //       intersection.N = N;
+      //       if (this->reflective) intersection.reflective = true;
+      //       intersection.albedo = this->albedo;
+      //     }
+      //   }
+      // }
+      // return intersection;
+
+      // BVH
       std::list<Node*> nodes_to_visit;
       nodes_to_visit.push_front(this->bvh_root);
-      double min_t = MAXFLOAT;
       while (not nodes_to_visit.empty()) {
         Node* curNode = nodes_to_visit.back();
         nodes_to_visit.pop_back();
         if (curNode->child_left) {
-          if (curNode->child_left->bounding_box.intersect(ray, t)) {
+          if (intersect_bounding_box(ray, curNode->child_left->bounding_box, t)) {
             if (t < min_t) nodes_to_visit.push_back(curNode->child_left);
           }
-          if (curNode->child_right->bounding_box.intersect(ray, t)) {
+          if (intersect_bounding_box(ray, curNode->child_right->bounding_box, t)) {
             if (t < min_t) nodes_to_visit.push_back(curNode->child_right);
           }
         } else {
@@ -387,7 +437,7 @@ class TriangleMesh : public Geometry {
                 intersection.P = A + beta*e1 + gamma*e2;
                 intersection.N = N;
                 if (this->reflective) intersection.reflective = true;
-                intersection.albedo = Vector(1.,1.,1.); //! HARD CODE
+                intersection.albedo = this->albedo;
               }
             }
           }
@@ -395,29 +445,46 @@ class TriangleMesh : public Geometry {
       }
       return intersection;
     }
-    
+
   private:
 
     void build_bvh(Node *node, int starting_triangle, int ending_triangle) {
       node->bounding_box =  compute_bounding_box(starting_triangle, ending_triangle);
       node->starting_triangle = starting_triangle;
       node->ending_triangle = ending_triangle;
-      Vector diag = compute_diag(node->bounding_box);
+
+      Vector diag = node->bounding_box.B_max - node->bounding_box.B_min;
       Vector middle_diag = node->bounding_box.B_min + diag*0.5;
-      int longest_axis = get_longest(diag);
+
+      int longest_axis = 0;
+      double max = abs(diag[0]);
+      for (int i = 1; i < 3; i++) {
+        if (abs(diag[i]) > max) {
+          max = abs(diag[i]);
+          longest_axis = i;
+        }
+      }
+
       int pivot_index = starting_triangle;
       for (int i = starting_triangle; i < ending_triangle; i++) {
-        Vector barycenter = compute_barycenter(indices[i]);
+        Vector vertex1 = scaling_factor*this->vertices[this->indices[i].vtxi] + translation;
+        Vector vertex2 = scaling_factor*this->vertices[this->indices[i].vtxj] + translation;
+        Vector vertex3 = scaling_factor*this->vertices[this->indices[i].vtxk] + translation;
+        Vector barycenter = (vertex1 + vertex2 + vertex3)/3.;
         if (barycenter[longest_axis] < middle_diag[longest_axis]) {
           std::swap(indices[i], indices[pivot_index]);
           pivot_index++;
         }
       }
+
       if ( // Stopping Criteria
         pivot_index <= starting_triangle ||
-        pivot_index >= ending_triangle ||
+        pivot_index >= ending_triangle - 5 ||
         ending_triangle - starting_triangle < 5
       ) return;
+
+      node->child_left = new Node();
+      node->child_right = new Node();
       build_bvh(node->child_left, starting_triangle, pivot_index);
       build_bvh(node->child_right, pivot_index, ending_triangle);
     }
@@ -426,12 +493,12 @@ class TriangleMesh : public Geometry {
       double min_x = MAXFLOAT, min_y = MAXFLOAT, min_z = MAXFLOAT;
       double max_x = - MAXFLOAT, max_y = - MAXFLOAT, max_z = - MAXFLOAT;
       for (int i = starting_triangle; i < ending_triangle; i++) {
-        auto triangle_vertices = {
+        auto original_triangle_vertices = {
           this->vertices[this->indices[i].vtxi],
           this->vertices[this->indices[i].vtxj],
           this->vertices[this->indices[i].vtxk]
         };
-        for (auto const& vertex: triangle_vertices) {
+        for (auto const& vertex: original_triangle_vertices) {
           Vector V = scaling_factor*vertex + translation;
           if (V[0] < min_x) min_x = V[0];
           else if (V[0] > max_x) max_x = V[0];
@@ -447,8 +514,7 @@ class TriangleMesh : public Geometry {
       return bounding_box;
     }
 
-
-    bool intersect_bounding_box(const Ray &ray, BoundingBox bounding_box) {
+    bool intersect_bounding_box(const Ray &ray, BoundingBox bounding_box, double &t) {
       double tx1, ty1, tz1;
       double tx0, ty0, tz0;
       double t_B_min, t_B_max;
@@ -472,8 +538,11 @@ class TriangleMesh : public Geometry {
       tz0 = std::min(t_B_min, t_B_max);
       tz1 = std::max(t_B_min, t_B_max);
 
-      if (std::min({tx1,ty1,tz1}) > std::max({tx0,ty0,tz0}))
+      double first_intersection_t = std::max({tx0,ty0,tz0});
+      if (std::min({tx1,ty1,tz1}) > first_intersection_t > 0) {
+        t = first_intersection_t;
         return true;
+      }
       return false;
     }
 
@@ -482,11 +551,14 @@ class TriangleMesh : public Geometry {
     std::vector<Vector> normals;
     std::vector<Vector> uvs;
     std::vector<Vector> vertexcolors;
+    Vector albedo;
     Vector translation;
     double scaling_factor;
     BoundingBox full_bounding_box;
     Node* bvh_root;
 };
+
+// SCENE  ----------------------------------------------------------------------
 
 class BasicScene {
   public:
@@ -547,12 +619,12 @@ class BasicScene {
           else return Vector(1., 1. ,1.)*light_intensity/(4*M_PI*M_PI*R*R);
         }
 
-        if (intersection.reflective) { 
+        if (intersection.reflective) {
           // Reflection
           Ray reflected_ray = Ray(P, ray.u - (2*dot(N,ray.u)) * N);
           return getColor(reflected_ray, ray_depth - 1);
-        } 
-        else if (intersection.refractive_index != 1.) { 
+        }
+        else if (intersection.refractive_index != 1.) {
           // Refraction
           double n1, n2;
           if (dot(N,ray.u) > 0) {
@@ -566,7 +638,7 @@ class BasicScene {
           double k0 = pow(n1 - n2, 2.)/pow(n1 + n2, 2.);
           P = intersection.P - N*eps;
           double dot_N_u = dot(N,ray.u);
-          if (1. - pow((n1/n2), 2.) * (1 - pow(dot_N_u, 2.)) > 0) { 
+          if (1. - pow((n1/n2), 2.) * (1 - pow(dot_N_u, 2.)) > 0) {
             // Standard Refraction
             Vector w_T = (n1/n2) * (ray.u - dot_N_u*N);
             Vector w_N = (-1.)*N * sqrt(1 - pow((n1/n2),2.)*(1 - pow(dot_N_u,2.)));
@@ -579,12 +651,12 @@ class BasicScene {
               Ray refracted_ray = Ray(P, w);
               return getColor(refracted_ray, ray_depth - 1);
             }
-          } else { 
+          } else {
             // Total Internal Relection
             Ray internal_reflected_ray = Ray(P, ray.u - (2*dot(intersection.N,ray.u)) * intersection.N);
             return getColor(internal_reflected_ray, ray_depth - 1);
           }
-        } 
+        }
         else {
           double I = light_intensity;
           double R = light_radius;
@@ -601,7 +673,7 @@ class BasicScene {
           double pdf = dot(Nprime, normalize(x-light_position))/(M_PI*R*R);
           Vector rho = intersection.albedo;
           Lo = I/(4*M_PI*M_PI*R*R)*rho/M_PI*visibility*std::max(dot(N,omega),0.)*std::max(dot(Nprime,(-1.)*omega),0.)/(pow(norm(xprime-P),2.)*pdf);
-          
+
           // Indirect Lighting
           Ray random_ray = Ray(P, random_cos(N));
           Lo += rho * getColor(random_ray, ray_depth - 1, true);
@@ -610,7 +682,7 @@ class BasicScene {
 
       return Lo;
     }
-  
+
   private:
     std::vector<Geometry*> geometries;
     Vector light_position;
@@ -618,12 +690,14 @@ class BasicScene {
     double light_intensity;
 };
 
+// MAIN ------------------------------------------------------------------------
+
 int main() {
 
   auto start = std::chrono::high_resolution_clock::now();
-  
-  Vector light_position(0, 35, 20);
-  double light_radius = 2;
+
+  Vector light_position(40, 40, 20);
+  double light_radius = 15;
   double light_intensity = 1e5;
 
   BasicScene scene = BasicScene(light_position, light_radius, light_intensity);
@@ -633,41 +707,36 @@ int main() {
   scene.addGeometry(light);
 
   // Cat
-  TriangleMesh* cat = new TriangleMesh(0.3, Vector(0, -10, 0), false);
+  TriangleMesh* cat = new TriangleMesh(0.6, Vector(-10, -10, 0), Vector(0.718, 0.514, 0.263), false);
   cat->readOBJ("objs/cat.obj");
   scene.addGeometry(cat);
 
   // Gun
-  // TriangleMesh* gun = new TriangleMesh(50, Vector(0, 10, 20), false);
-  // gun->readOBJ("objs/gun.obj");
-  // scene.addGeometry(gun);
-
-  // Car
-  // TriangleMesh* car = new TriangleMesh(1, Vector(0, -10, 0), false);
-  // car->readOBJ("objs/koenigsegg.obj");
-  // scene.addGeometry(car);
+  TriangleMesh* gun = new TriangleMesh(15, Vector(20, 5, 0), Vector(0.1, 0.1, 0.1), false);
+  gun->readOBJ("objs/gun.obj");
+  scene.addGeometry(gun);
 
   // White Sphere
-  // Sphere* white_sphere = new Sphere(Vector(0, 0, 0), 10, Vector(1., 1., 1.));
-  // scene.addGeometry(white_sphere);
+  Sphere* white_sphere = new Sphere(Vector(20, 0, -20), 10, Vector(1., 1., 1.));
+  scene.addGeometry(white_sphere);
 
   // Reflective Sphere
-  // Sphere* reflective_sphere = new Sphere(Vector(-20, 0, 0), 10, Vector(1., 1., 1.), true);
-  // scene.addSphere(reflective_sphere);
+  Sphere* reflective_sphere = new Sphere(Vector(-5, 15, -15), 12, Vector(1., 1., 1.), true);
+  scene.addGeometry(reflective_sphere);
 
   // Solid Refractive Sphere
-  // Sphere* solid_refractive_sphere = new Sphere(Vector(0, 0, 0), 10, Vector(1., 1., 1.), false, 1.5);
-  // scene.addSphere(solid_refractive_sphere);
+  Sphere* solid_refractive_sphere = new Sphere(Vector(-17, -7, 15), 3, Vector(1., 1., 1.), false, 1.5);
+  scene.addGeometry(solid_refractive_sphere);
 
   // Hollow Refractive Sphere
-  // Sphere* hollow_refractive_sphere_outer = new Sphere(Vector(20, 0, 0), 10, Vector(1., 1., 1.), false, 1.5);
-  // Sphere* hollow_refractive_sphere_inner = new Sphere(Vector(20, 0, 0), 9.5, Vector(1., 1., 1.), false, 1.5, true);
-  // scene.addSphere(hollow_refractive_sphere_outer);
-  // scene.addSphere(hollow_refractive_sphere_inner);
+  Sphere* hollow_refractive_sphere_outer = new Sphere(Vector(4, -6, 30), 4, Vector(1., 1., 1.), false, 1.5);
+  Sphere* hollow_refractive_sphere_inner = new Sphere(Vector(4, -6, 30), 3.75, Vector(1., 1., 1.), false, 1.5, true);
+  scene.addGeometry(hollow_refractive_sphere_outer);
+  scene.addGeometry(hollow_refractive_sphere_inner);
 
   int W = 512;
   int H = 512;
-  int rays_per_pixel = 10;
+  int rays_per_pixel = 1000;
   std::vector<unsigned char> image(W*H * 3, 0);
   double fov = 1.0472; // 60 deg
   Vector camera_position = Vector(0, 0, 55);
@@ -680,7 +749,7 @@ int main() {
 
       Vector color;
       double x,y;
-      
+
       for (int k = 0; k < rays_per_pixel; k++) {
         boxMuller(0.5,x,y);
         Vector V;
@@ -693,13 +762,13 @@ int main() {
       }
 
       color /= rays_per_pixel;
-            
+
       image[(i*W + j) * 3 + 0] = std::max(std::min(255., pow(color[0], 1./gamma)*255),0.);
       image[(i*W + j) * 3 + 1] = std::max(std::min(255., pow(color[1], 1./gamma)*255),0.);
       image[(i*W + j) * 3 + 2] = std::max(std::min(255., pow(color[2], 1./gamma)*255),0.);
     }
   }
-  
+
   stbi_write_png("render.png", W, H, 3, &image[0], 0);
 
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
