@@ -696,8 +696,8 @@ int main() {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  Vector light_position(40, 40, 20);
-  double light_radius = 15;
+  Vector light_position(0, 20, 5);
+  double light_radius = 3; // > 0
   double light_intensity = 1e5;
 
   BasicScene scene = BasicScene(light_position, light_radius, light_intensity);
@@ -736,14 +736,14 @@ int main() {
 
   int W = 512;
   int H = 512;
-  int rays_per_pixel = 1000;
+  int rays_per_pixel = 10;
   std::vector<unsigned char> image(W*H * 3, 0);
   double fov = 1.0472; // 60 deg
   Vector camera_position = Vector(0, 0, 55);
   double max_ray_depth = 5;
   double gamma = 2.2;
 
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(dynamic,1)
   for (int i = 0; i < H; i++) {
     for (int j = 0; j < W; j++) {
 

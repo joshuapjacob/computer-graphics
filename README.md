@@ -1,18 +1,19 @@
-# CSE306-Computer-Graphics
-CSE306 @ Ecole Polytechnique Coursework
+# Computer-Graphics
+This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Polytechnique.
 
 ## Simple Ray-Tracer (from scratch)
 
+![Sample Render](https://raw.githubusercontent.com/joshuapjacob/Computer-Graphics/main/renders/final.png)
 ### Features
 
 - Spheres
 - Reflection
-- Refraction
+- Refraction (Solid & Hollow)
 - Indirect Lighting
 - Spherical Lighting (Soft Shadows)
 - Parallelization
 - Antialiasing
-- Meshes (.obj)
+- Triangle Meshes (.obj)
 - Bounding Volume Hierarchies Acceleration
 
 ### Compilation
