@@ -2,10 +2,9 @@
 This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Polytechnique.
 
 ## Ray Tracer
-
 ![Sample Render](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Ray%20Tracer/renders/final.png)
-### Features
 
+### Features
 - Spheres
 - Reflection
 - Refraction (Solid & Hollow)
@@ -23,16 +22,16 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 ```g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out```
 
 ## Sliced Optimal Transport Color Matching
-
 Input | Model | Output
 :----:|:-----:|:------:
-![](https://...Dark.png)  |  ![](https://...Ocean.png) |
+![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/input.png)  |  ![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/model.png) | ![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/output.png)
 
 ### Requirements
 - [stb](https://github.com/nothings/stb) (to read/write image)
+- 
 ### Compilation & Execution
-Last argument is the number of iterations.
 ```
 g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
 ./main.out input.png model.png 100
 ```
+The last argument is the number of iterations.
