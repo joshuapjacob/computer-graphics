@@ -19,14 +19,6 @@ Vector random_direction() {
     return Vector(x, y, z);
 }
 
-void sort_projection(std::vector<std::pair<int, int>> proj) {
-    std::sort(proj.begin(), proj.end(),
-        [](const std::pair<int, int> &a, std::pair<int, int> const &b) -> bool {
-            return a.first > b.first;
-        }
-    );
-}
-
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         printf("Error: first argument should be input image, second should be model image, and third should be iterations.\n");
@@ -74,8 +66,8 @@ int main(int argc, char *argv[]) {
         }
 
         // Sorting
-        sort_projection(projI);
-        sort_projection(projM);
+        std::sort(projI.begin(), projI.end());
+        std::sort(projM.begin(), projM.end());
 
         // Advection
         for (size_t i = 0; i < total_pixels; i++) {

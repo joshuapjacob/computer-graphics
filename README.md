@@ -17,15 +17,22 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 - Bounding Volume Hierarchies Acceleration
 
 ### Requirements
-- [stb](https://github.com/nothings/stb) (to write to .png)
+- [stb](https://github.com/nothings/stb) (to write image)
 
-### Compilation
-
+### Compilation &
 ```g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out```
 
 ## Sliced Optimal Transport Color Matching
-(doesn't work properly...)
 
-### Compilation
+Input | Model | Output
+:----:|:-----:|:------:
+![](https://...Dark.png)  |  ![](https://...Ocean.png) |
 
-```g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out```
+### Requirements
+- [stb](https://github.com/nothings/stb) (to read/write image)
+### Compilation & Execution
+Last argument is the number of iterations.
+```
+g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
+./main.out input.png model.png 100
+```
