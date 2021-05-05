@@ -29,7 +29,7 @@ void sort_projection(std::vector<std::pair<int, int>> proj) {
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
-        printf("Error: first argument should be input image, second should be model image and third should be iterations.\n");
+        printf("Error: first argument should be input image, second should be model image, and third should be iterations.\n");
         exit(1);
     }
     const char *input_image_filename = argv[1];
@@ -64,13 +64,13 @@ int main(int argc, char *argv[]) {
         v = random_direction();
 
         // Projections
-        unsigned char *I = input_image, *M = model_image;
         for (size_t i = 0; i < total_pixels; i++) {
+            unsigned char *I = input_image + input_channels * i;
+            unsigned char *M = model_image + model_channels * i;
             pixel = Vector(*I, *(I + 1), *(I + 2));
             model_pixel = Vector(*M, *(M + 1), *(M + 2));
             projI[i] = std::pair<int, int>(dot(pixel, v), i);
             projM[i] = std::pair<int, int>(dot(model_pixel, v), i);
-            I += input_channels, M += model_channels;
         }
 
         // Sorting
