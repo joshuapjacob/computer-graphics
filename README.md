@@ -18,8 +18,12 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 ### Requirements
 - [stb](https://github.com/nothings/stb) (to write image)
 
-### Compilation &
-```g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out```
+### Compilation & Execution
+```sh
+$ g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out
+$ ./main.out
+```
+You can adjust the scene before compiling in ```main()```.
 
 ## Sliced Optimal Transport Color Matching
 Input | Model | Output
@@ -30,8 +34,8 @@ Input | Model | Output
 - [stb](https://github.com/nothings/stb) (to read/write image)
 - 
 ### Compilation & Execution
-```
-g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
-./main.out input.png model.png 100
+```sh
+$ g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
+$ ./main.out input.png model.png 100
 ```
 The last argument is the number of iterations.
