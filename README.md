@@ -3,7 +3,7 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 
 ## Ray Tracer
 
-![Sample Render](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/renders/final.png)
+![Sample Render](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Ray%20Tracer/renders/final.png)
 ### Features
 
 - Spheres
@@ -16,7 +16,7 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 - Triangle Meshes (.obj)
 - Bounding Volume Hierarchies Acceleration
 
-## Requirements
+### Requirements
 - [stb](https://github.com/nothings/stb) (to write to .png)
 
 ### Compilation
