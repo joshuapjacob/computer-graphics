@@ -3,7 +3,7 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 
 ## Ray Tracer
 
-![Sample Render](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/renders/final.png)
+![Sample Render](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Ray%20Tracer/renders/final.png)
 ### Features
 
 - Spheres
