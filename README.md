@@ -32,7 +32,7 @@ Input | Model | Output
 
 ### Requirements
 - [stb](https://github.com/nothings/stb) (to read/write image)
-- 
+
 ### Compilation & Execution
 ```sh
 $ g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
