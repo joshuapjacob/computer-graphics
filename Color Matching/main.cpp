@@ -79,8 +79,8 @@ int main(int argc, char *argv[]) {
 
         // Advection
         for (size_t i = 0; i < total_pixels; i++) {
-            int index = projI[i].second;
-            unsigned char *I = input_image + input_channels * index;
+            int permutation_index = projI[i].second;
+            unsigned char *I = input_image + input_channels * permutation_index;
             pixel = Vector(*I, *(I + 1), *(I + 2)) + (projM[i].first - projI[i].first)*v;
             *I = pixel[0];
             *(I + 1) = pixel[1];
