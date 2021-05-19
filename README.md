@@ -20,6 +20,7 @@ This repository contains my coursework for CSE306 "Computer Graphics" @ Ecole Po
 
 ### Compilation & Execution
 ```sh
+$ cd Ray\ Tracer/
 $ g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out
 $ ./main.out
 ```
@@ -35,7 +36,21 @@ Input | Model | Output
 
 ### Compilation & Execution
 ```sh
+$ cd Color\ Matching/
 $ g++ -O3 main.cpp vector.cpp -std=c++11 -o main.out
 $ ./main.out input.png model.png 100
 ```
 The last argument is the number of iterations.
+
+## Geometry Processing
+
+- Lab 6:
+  - Sutherland-Hodgman Polygon Clipping Algorithm Nanoflann library O(N log N) (section 4.2)
+  - Voronoï Parallel Linear Enumeration Algorithm 2D (section 4.3.3 of the lecture notes)
+
+### Compilation & Execution
+```sh
+$ cd Geometry\ Processing/
+$ g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out
+$ ./main.out
+```
