@@ -44,9 +44,14 @@ The last argument is the number of iterations.
 
 ## Geometry Processing
 
-- Lab 6:
-  - Sutherland-Hodgman Polygon Clipping Algorithm Nanoflann library O(N log N) (section 4.2)
-  - Voronoï Parallel Linear Enumeration Algorithm 2D (section 4.3.3 of the lecture notes)
+### Features
+- Polygon Clipping - Sutherland-Hodgman Algorithm 
+- 2D Voronoï/Power Diagram Generation - Parallel Linear Enumeration O(n<sup>2</sup>) Algorithm
+- TODO: Power Diagram Weight Optimization - Optimal Transport L-BFGS
+- TODO: 2D Fluid Dynamics - Gallouet-Mérigot Incompressible Euler scheme
+
+### Requirements
+- [libLBFGS](https://github.com/chokkan/liblbfgs) (to optimize power diagram weights)
 
 ### Compilation & Execution
 ```sh
