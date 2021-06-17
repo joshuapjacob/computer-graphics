@@ -6,6 +6,7 @@
 
 #include "vector.h"
 #include "svg.h"
+#include "lbfgs.h"
 
 // POLYGON CLIPPING ------------------------------------------------------------
 
@@ -134,21 +135,11 @@ bool voronoi_inside(
 
 void weight_optimization(
     std::vector<double> &weights
-) {
-    // lbfgsfloatval_t fx;
-    uint N = weights.size();
-    lbfgsfloatval_t *m_weights = lbfgs_malloc(N);
-    for (uint i = 0; i < N; i++) {
-        m_weights[i] = weights[i];
-    }
+) {}
 
-    lbfgs(N, m_weights, &fx, evaluate, _progress, instance, NULL);
+// TUTTE EMBEDDING -------------------------------------------------------------
 
-    for (uint i = 0; i < N; i++) {
-        weights[i] = m_weights[i];
-        std::cout << m_weights[i] << std::endl;
-    }
-} 
+// TODO
 
 // MAIN ------------------------------------------------------------------------
 
@@ -192,9 +183,11 @@ int main() {
     }
     save_svg(voronoi_diagram(points, bounds, weights), "imgs/power_diagram.svg");
 
+    // TEST: L-BGFS
+    objective_function obj;
+    std::cout << obj.run(100) << std::endl;
+
     // TEST: Power Diagram Weight Optimization
     weight_optimization(weights);
     save_svg(voronoi_diagram(points, bounds, weights), "imgs/power_diagram_optimized.svg");
-
-
 }

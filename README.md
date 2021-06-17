@@ -56,6 +56,6 @@ The last argument is the number of iterations.
 ### Compilation & Execution
 ```sh
 $ cd Geometry\ Processing/
-$ g++ -O3 main.cpp vector.cpp -fopenmp -lpthread -std=c++11 -o main.out
+$ g++ -O3 main.cpp vector.cpp svg.cpp lbfgs.cpp -llbfgs -fopenmp -lpthread -std=c++11 -o main.out
 $ ./main.out
 ```

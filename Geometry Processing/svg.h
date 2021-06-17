@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-
+#pragma once
 #include "vector.h"
 
 class Polygon {
