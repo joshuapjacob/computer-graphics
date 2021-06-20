@@ -29,7 +29,7 @@ You can adjust the scene before compiling in ```main()```.
 ## Sliced Optimal Transport Color Matching
 Input | Model | Output
 :----:|:-----:|:------:
-![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/input.png)  |  ![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/model.png) | ![](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/output.png)
+![Input Image](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/input.png)  |  ![Model Image](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/model.png) | ![Output Image](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Color%20Matching/output.png)
 
 ### Requirements
 - [stb](https://github.com/nothings/stb) (to read/write image)
@@ -44,7 +44,7 @@ The last argument is the number of iterations.
 
 ## Geometry Processing
 
-![Sample](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Geometry%20Processing/imgs/optimized_final.svg?token=AGEEX3WHCCFPRARUIGKF3XTA3B7IY)
+![Sample Image](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Geometry%20Processing/imgs/optimized_final.svg)
 
 ### Features
 - Polygon Clipping - Sutherland-Hodgman Algorithm
