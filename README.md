@@ -44,11 +44,14 @@ The last argument is the number of iterations.
 
 ## Geometry Processing
 
+![Sample](https://raw.githubusercontent.com/joshuapjacob/computer-graphics/main/Geometry%20Processing/imgs/optimized_final.svg?token=AGEEX3WHCCFPRARUIGKF3XTA3B7IY)
+
 ### Features
 - Polygon Clipping - Sutherland-Hodgman Algorithm
 - 2D Voronoï/Power Diagram Generation - Parallel Linear Enumeration O(n<sup>2</sup>) Algorithm
 - Power Diagram Weight Optimization - Optimal Transport L-BFGS
 - ~~2D Fluid Dynamics - Gallouet-Mérigot Incompressible Euler scheme~~
+- Tutte Embedding
 
 ### Requirements
 - [libLBFGS](https://github.com/chokkan/liblbfgs) (to optimize power diagram weights)
