@@ -1,6 +1,10 @@
 #pragma once
 #include <lbfgs.h>
 #include <stdio.h>
+#include <functional>
+#include <vector>
+#include "vector.h"
+#include "svg.h"
 
 class objective_function {
 protected:
@@ -41,8 +45,27 @@ protected:
         int k,
         int ls
     );
+    std::vector<double> lambdas;
+    int iterations;
+    std::function<std::vector<Polygon>(
+        const std::vector<Vector>&,
+        const Polygon&,
+        const std::vector<double>&
+    )> voronoi_function;
+    std::vector<Vector> points;
+    Polygon bounds;
+    std::vector<Polygon> polygons;
 public:
-    objective_function() : m_x(NULL) {}
+    objective_function(
+        const std::vector<double> &lambdas,
+        std::function<std::vector<Polygon>(
+            const std::vector<Vector>&,
+            const Polygon&,
+            const std::vector<double>&
+        )> voronoi_function,
+        const std::vector<Vector> &points,
+        const Polygon &bounds
+    );
     virtual ~objective_function();
-    int run(int N);
+    std::vector<Polygon> run(int N);
 };

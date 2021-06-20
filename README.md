@@ -45,10 +45,10 @@ The last argument is the number of iterations.
 ## Geometry Processing
 
 ### Features
-- Polygon Clipping - Sutherland-Hodgman Algorithm 
+- Polygon Clipping - Sutherland-Hodgman Algorithm
 - 2D Voronoï/Power Diagram Generation - Parallel Linear Enumeration O(n<sup>2</sup>) Algorithm
-- TODO: Power Diagram Weight Optimization - Optimal Transport L-BFGS
-- TODO: 2D Fluid Dynamics - Gallouet-Mérigot Incompressible Euler scheme
+- Power Diagram Weight Optimization - Optimal Transport L-BFGS
+- ~~2D Fluid Dynamics - Gallouet-Mérigot Incompressible Euler scheme~~
 
 ### Requirements
 - [libLBFGS](https://github.com/chokkan/liblbfgs) (to optimize power diagram weights)
